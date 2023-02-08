@@ -1,0 +1,27 @@
+{
+  "name": "docker-example",
+  "version": "1.0.0",
+  "description": "Docker Example with notes",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsensei/docker-example.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tsensei/docker-example/issues"
+  },
+  "homepage": "https://github.com/tsensei/docker-example#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  }
+}
