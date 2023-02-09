@@ -89,6 +89,18 @@ Also, to take down the container : `docker compose down -v`
 
 ## Development and Production Environments :
 
+You can have multiple Dockerfile for development and production environment. In our case the difference is we need to run `npm run dev` in development and `node index.js` in development in the last line of Dockerfile. We can solve this by having multiple docker-compose files.
+
+We create multiple docker compose :
+
+- docker-compose.yml : for the shared configurations
+- docker-compose.dev.yml : for the dev configurations
+- docker-compose.prod.yml : for production comfigurations
+
+Then we run multiple compose files in the following syntax and they will merge and cascade the configs in the order they are written :  
+For dev : `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d [--build]`  
+For prod : `docker compose -f docker-compose.yml -f docker.compose.prod.yml up --build`
+
 ## Useful Commands :
 
 - Build a image : `docker build -t <image_name> /path/to/dockerfile`

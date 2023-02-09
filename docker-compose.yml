@@ -4,8 +4,5 @@ services:
     build: .
     ports:
       - "3000:3000"
-    volumes:
-      - ./:/app:ro
-      - /app/node_modules
     environment:
       - PORT=3000
