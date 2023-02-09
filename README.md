@@ -9,8 +9,8 @@ A **Container** is the process that we spin up by executing the binary executabl
 Technically :
 
 A **Dockerfile** is a set of instructions to build a Docker image.  
-An **Image** is a snapshot of the application and its dependencies, built from the Dockerfile.  
-A **Container** is an instance of the Image, running as a separate process.
+An **Image** is a snapshot of the application and its dependencies, built from the Dockerfile, it provides the isolated custom filesystem.  
+A **Container** is a running instance of the Image, running as a separate process from all other processes of the host machine.
 
 ## A word on Dockerfile :
 
@@ -100,6 +100,64 @@ We create multiple docker compose :
 Then we run multiple compose files in the following syntax and they will merge and cascade the configs in the order they are written :  
 For dev : `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d [--build]`  
 For prod : `docker compose -f docker-compose.yml -f docker.compose.prod.yml up --build`
+
+We will also have to modify the Dockerfile to be smart enough to run `npm install --only=production` during production build, not to install any dev dependencies in the production build.
+
+We modify the RUN command to reference our argument from docker-compose :
+
+In `docker-compose.dev.yml` :
+
+<pre>
+node-app:
+  build:
+    context:.
+    args:
+      NODE_ENV: developement
+</pre>
+
+In `docker-compose.prod.yml` :
+
+<pre>
+node-app:
+  build:
+    context:.
+    args:
+      NODE_ENV: production
+</pre>
+
+In Dockerfile :
+
+<pre>
+ARG NODE_ENV
+RUN if [ "$NODE_ENV" = "development" ]; \
+          then npm install; \
+          else npm install --only=production; \
+          fi
+</pre>
+
+## Persisting data :
+
+When we use services like mongodb, every time we re-run the container, the data stored is lost. For persisting our databases, we use **named volume**.
+
+**Volume** provide a way to connect a specific filesystem paths of the container to the host machine. Docker fully manages the volume, including where it is stored on the disk, we just name it.
+
+To use a volume mount :  
+ In `docker-compose.yml`
+
+ <pre>
+    services:
+      mongo:
+        volumes: mongo-db:/data/db
+ </pre>
+
+_We shouldnt use the `-v` flag with docker compose down as it removes the named volumes as well, we can use `docker prune` separately to delete unused volumes_
+
+\* A named volume can be used by multiple containers, so in `docker-compose.yml` we write in the bottom:
+
+<pre>
+  volumes:
+    mongo-db:
+</pre>
 
 ## Useful Commands :
 
