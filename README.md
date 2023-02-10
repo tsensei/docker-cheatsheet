@@ -33,6 +33,19 @@ The answer is caching, the build process is done in such a way that can be visua
 
 The base image and work directory are not changed very often. `package.json` is modified whenever a new package is added, which then requires the `npm install` to install the dependency during the build as well. But the most change happens on our code. So, if we copy all the content on step 3 using `COPY . ./` , with every change our code, `npm install` will run again, which isn't necessary if the `package.json` hasn't changed.
 
+## Making Container accessible to the internet :
+
+A container is not accessible outside its network by default. For it to be accessible, we need to _publish_ it. Publishing a container can be done in two ways :
+
+- With docker run : `docker run -p localPort:dockerPort --name <container_name> <image_name>`
+- With docker compose :
+<pre>
+  services:
+    service_name:
+      ports:
+        -"localPort:dockerPort"  
+</pre>
+
 ## Docker bind mount :
 
 In a bind mount, a file or directory is mounted into a container. Any changes made on the local file outside the container will be reflected inside docker container and vice versa.
@@ -66,7 +79,7 @@ Now we create a `docker-compose.yml` :
 <pre>
   version: 'version_number'
   services:
-    container_name:
+    service_name:
       build: /path/to/Dockerfile
       ports: 
         - localPort:dockerPort
@@ -108,7 +121,7 @@ We modify the RUN command to reference our argument from docker-compose :
 In `docker-compose.dev.yml` :
 
 <pre>
-node-app:
+service_name:
   build:
     context:.
     args:
@@ -118,7 +131,7 @@ node-app:
 In `docker-compose.prod.yml` :
 
 <pre>
-node-app:
+service_name:
   build:
     context:.
     args:
@@ -159,6 +172,55 @@ _We shouldnt use the `-v` flag with docker compose down as it removes the named 
     mongo-db:
 </pre>
 
+## Docker Network :
+
+As we use multiple containers in a project like a mongo database container with mongoose, we see the need to use ip address to connect to the db container from our node one. While we can find out the ip of a container by doing:  
+`docker inspect <container_name> | grep 'IPAddress'`
+
+While there's also the possibility of ip address changing, finding the ip address is a hassle when Docker provides a more intuitive way to solve this.
+
+_Enter Docker Networks._
+
+Docker provides us with DNS resolution out of the box.
+
+A mongoose connect command :
+
+<pre>
+mongoose.connect('mongodb://username:password@host_ip:port/database?options...');
+</pre>
+
+If we want to connect to a mongo container, we can always do `docker inspect <service_name> | grep 'IPAddress'`, and placing the ip address, but as docker supports DNS resolution, we can **replace the ip address with the service name** :
+
+<pre>
+mongoose.connect('mongodb://username:password@service_name:port/database?options...');
+</pre>
+
+To inspect a network :
+
+<pre>
+docker network ls // Get the network name
+docker network inspect network_name
+</pre>
+
+We can see all the available commands using :
+
+<pre>docker network --help</pre>
+
+## Container Bootup Order :
+
+Suppose we have a mongo container on which our node container depends on. If you node container starts first, It may try to make a connection while our mongo container is not up yet. We can use the following under node services in `docker-compose.yml` to solve the issue :
+
+<pre>
+  services:
+    node:
+      ...
+      depends_on:mongo
+    mongo:
+      ...
+</pre>
+
+It ensures that mongo will start up before our node container. But it still doesn't solve the problem that- while our mongo container might spin up first, the mongo service may still not be running and accepting connections. We need to implement a handling method for this scenario as well.
+
 ## Useful Commands :
 
 - Build a image : `docker build -t <image_name> /path/to/dockerfile`
@@ -166,5 +228,6 @@ _We shouldnt use the `-v` flag with docker compose down as it removes the named 
 - Remove a image : `docker image rm <image_id>`
 - Run a named container from a image : `docker run -d -p localPort:dockerPort --name <container_name> <image_name>`
 - List running containers : `docker ps` or `docker container ls`
+- Getting detailed data on a container : `docker inspect <container_name>`
 - Shutting down a running container (and delete volume): `docker rm <container_name> -fv`
 - Opening bash terminal on container : `docker exec -it <container_name> bash`
